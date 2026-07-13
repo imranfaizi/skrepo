@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Add Category{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-tags me-2 text-primary"></i>Add Category</h5>
+    <a href="{% url 'category_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 500px;">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Category Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. Lawn, Cotton, Readymade" required>
+            </div>
+            <button type="submit" class="btn w-100" style="background-color:#e83e8c; color:white;">
+                <i class="bi bi-check-lg me-1"></i> Save Category
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

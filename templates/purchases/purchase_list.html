@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Purchase Invoices{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Purchase Invoices</h5>
+    <a href="{% url 'purchase_add' %}" class="btn-primary-custom btn">
+        <i class="bi bi-plus-lg me-1"></i> New Invoice
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+            <i class="bi bi-receipt card-icon"></i>
+            <div class="label">Total Amount</div>
+            <div class="value">Rs. {{ total_amount|floatformat:2 }}</div>
+            <div class="sub">All Invoices</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+            <i class="bi bi-check-circle card-icon"></i>
+            <div class="label">Total Paid</div>
+            <div class="value">Rs. {{ total_paid|floatformat:2 }}</div>
+            <div class="sub">Payments Made</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+            <i class="bi bi-exclamation-circle card-icon"></i>
+            <div class="label">Total Balance</div>
+            <div class="value">Rs. {{ total_balance|floatformat:2 }}</div>
+            <div class="sub">Still Owed</div>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Invoice No</th>
+                    <th>Supplier</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.supplier.name }}</td>
+                    <td>{{ invoice.invoice_date|date:"d M Y" }}</td>
+                    <td>{{ invoice.due_date|date:"d M Y"|default:"-" }}</td>
+                    <td>Rs. {{ invoice.net_total|floatformat:2 }}</td>
+                    <td>Rs. {{ invoice.paid_amount|floatformat:2 }}</td>
+                    <td>
+                        {% if invoice.balance > 0 %}
+                            <span class="badge bg-danger">Rs. {{ invoice.balance|floatformat:2 }}</span>
+                        {% else %}
+                            <span class="badge bg-success">Cleared</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.status == 'paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif invoice.status == 'partial' %}
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'purchase_detail' invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'purchase_payment' invoice.pk %}" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-cash"></i>
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-danger"
+                           onclick="globalConfirmDelete('{% url 'purchase_delete' invoice.pk %}', '{{ invoice.invoice_number }}')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                        No purchase invoices yet. Create one!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Make Payment{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-cash me-2 text-success"></i>Make Payment</h5>
+    <a href="{% url 'purchase_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header-custom">
+                <h6><i class="bi bi-receipt me-2"></i>Invoice Summary</h6>
+            </div>
+            <div class="card-body p-4">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">Invoice No:</td>
+                        <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Supplier:</td>
+                        <td><strong>{{ invoice.supplier.name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Net Total:</td>
+                        <td><strong>Rs. {{ invoice.net_total|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Already Paid:</td>
+                        <td><strong class="text-success">Rs. {{ invoice.paid_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr class="border-top">
+                        <td class="text-muted fw-bold">Remaining Balance:</td>
+                        <td><strong class="text-danger fs-5">Rs. {{ invoice.balance|floatformat:2 }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header-custom">
+                <h6><i class="bi bi-cash me-2"></i>Enter Payment</h6>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Payment Amount (Rs.) *</label>
+                        <input type="number" name="amount" class="form-control form-control-lg"
+                               placeholder="0.00" step="0.01" min="0"
+                               max="{{ invoice.balance }}" required>
+                        <div class="form-text">
+                            Maximum payable: Rs. {{ invoice.balance|floatformat:2 }}
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn-primary-custom btn">
+                            <i class="bi bi-check-lg me-1"></i> Confirm Payment
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="document.querySelector('input[name=amount]').value='{{ invoice.balance|floatformat:2 }}'">
+                            Pay Full Balance (Rs. {{ invoice.balance|floatformat:2 }})
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

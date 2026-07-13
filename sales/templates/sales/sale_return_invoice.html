@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block page_title %}Return Invoice{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-danger"></i>Return Invoice — RTN-{{ r.pk }}</h5>
+    <div class="d-flex gap-2">
+        <button onclick="printInvoice()" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-printer me-1"></i> Print
+        </button>
+        <a href="{% url 'sale_detail' r.sale.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-receipt me-1"></i> Original Sale
+        </a>
+        <a href="{% url 'sale_return_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> All Returns
+        </a>
+    </div>
+</div>
+
+<!-- Screen View -->
+<div class="content-card mb-4 no-print">
+    <div class="card-body p-4">
+
+        <div class="text-center mb-4">
+            <h4 class="fw-bold mb-1">GS Boutique</h4>
+            <div class="text-muted small">Premium Fabrics & Experts Stitching</div>
+            <div class="text-muted small">Opp. Dare Arqam School (New Campus), Talagang Road, Chakwal</div>
+            <div class="text-muted small">Ph: 0370-6595870</div>
+            <hr>
+            <h5 class="fw-bold text-danger mb-0">RETURN / EXCHANGE INVOICE</h5>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <table class="table table-borderless table-sm mb-0">
+                    <tr>
+                        <td class="fw-semibold" style="width:140px;">Return No:</td>
+                        <td><strong>RTN-{{ r.pk }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Date:</td>
+                        <td>{{ r.date|date:"d M Y, g:i A" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Original Sale:</td>
+                        <td><a href="{% url 'sale_detail' r.sale.pk %}">SALE-{{ r.sale.pk }}</a></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Customer:</td>
+                        <td>{{ r.sale.customer.name|default:"Walk-in Customer" }}</td>
+                    </tr>
+                    {% if r.notes %}
+                    <tr>
+                        <td class="fw-semibold">Reason:</td>
+                        <td>{{ r.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+            <div class="col-md-6 text-end">
+                <span class="badge fs-6 p-2
+                    {% if r.return_type == 'refund' %}bg-success
+                    {% elif r.return_type == 'adjustment' %}bg-warning text-dark
+                    {% else %}bg-primary{% endif %}">
+                    {{ r.get_return_type_display }}
+                </span>
+            </div>
+        </div>
+
+        <h6 class="fw-bold text-danger mb-2"><i class="bi bi-box-arrow-in-left me-2"></i>Returned Items</h6>
+        <table class="table table-bordered table-sm mb-4">
+            <thead class="table-danger">
+                <tr>
+                    <th>#</th><th>Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in r.returned_items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{% if item.custom_name %}{{ item.custom_name }}{% elif item.product %}{{ item.product.name }}{% else %}-{% endif %}</td>
+                    <td class="text-center">{{ item.quantity|floatformat:0 }}</td>
+                    <td class="text-end">Rs. {{ item.price|floatformat:0 }}</td>
+                    <td class="text-end">Rs. {{ item.total|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="4" class="text-end fw-bold">Total Returned:</td>
+                    <td class="text-end fw-bold text-danger">Rs. {{ r.refund_amount|floatformat:0 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {% if r.return_type == 'exchange' %}
+        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-box-arrow-right me-2"></i>Items Given in Exchange</h6>
+        <table class="table table-bordered table-sm mb-4">
+            <thead class="table-primary">
+                <tr>
+                    <th>#</th><th>Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in r.exchange_items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{% if item.custom_name %}{{ item.custom_name }}{% elif item.product %}{{ item.product.name }}{% else %}-{% endif %}</td>
+                    <td class="text-center">{{ item.quantity|floatformat:0 }}</td>
+                    <td class="text-end">Rs. {{ item.price|floatformat:0 }}</td>
+                    <td class="text-end">Rs. {{ item.total|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="4" class="text-end fw-bold">Total Exchange:</td>
+                    <td class="text-end fw-bold text-primary">Rs. {{ r.exchange_amount|floatformat:0 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+
+        <div class="row justify-content-end">
+            <div class="col-md-5">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="fw-semibold">Returned Amount:</td>
+                        <td class="text-end fw-bold text-danger">Rs. {{ r.refund_amount|floatformat:0 }}</td>
+                    </tr>
+                    {% if r.return_type == 'exchange' %}
+                    <tr>
+                        <td class="fw-semibold">Exchange Amount:</td>
+                        <td class="text-end fw-bold text-primary">Rs. {{ r.exchange_amount|floatformat:0 }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr style="border-top:2px solid #dee2e6;">
+                        {% if r.return_type == 'exchange' %}
+                            {% if r.net_balance > 0 %}
+                            <td class="fw-bold">Customer Pays:</td>
+                            <td class="text-end fw-bold text-danger">Rs. {{ r.net_balance|floatformat:0 }}</td>
+                            {% elif r.net_balance < 0 %}
+                            <td class="fw-bold">Refund to Customer:</td>
+                            <td class="text-end fw-bold text-success">Rs. {{ r.net_balance|floatformat:0|slice:"1:" }}</td>
+                            {% else %}
+                            <td class="fw-bold">Balance:</td>
+                            <td class="text-end fw-bold text-success">Even ✓</td>
+                            {% endif %}
+                        {% elif r.return_type == 'adjustment' %}
+                            <td class="fw-bold">Adjusted in Balance:</td>
+                            <td class="text-end fw-bold text-warning">Rs. {{ r.refund_amount|floatformat:0 }}</td>
+                        {% else %}
+                            <td class="fw-bold">Refund to Customer:</td>
+                            <td class="text-end fw-bold text-success">Rs. {{ r.refund_amount|floatformat:0 }}</td>
+                        {% endif %}
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <hr class="mt-4">
+        <div class="text-center text-muted small">
+            No return or exchange without this invoice.<br>
+            <strong>Thank you for shopping at GS Boutique</strong>
+        </div>
+    </div>
+</div>
+
+<!-- THERMAL PRINT AREA -->
+<div id="printArea" style="display:none;">
+<style>
+    .no-print { display: block; }
+    @media print {
+        @page { margin: 0; size: 80mm auto; }
+        body * { visibility: hidden; }
+        #printArea, #printArea * { visibility: visible; }
+        .no-print { display: none !important; }
+        #printArea {
+            display: block !important;
+            position: fixed;
+            top: 0; left: 0;
+            width: 80mm;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #000;
+            padding: 4mm;
+            background: #fff;
+        }
+    }
+    #printArea {
+        width: 80mm;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #000;
+    }
+    .p-center     { text-align: center; }
+    .p-bold       { font-weight: bold; }
+    .p-line       { border-top: 1px dashed #000; margin: 5px 0; }
+    .p-double     { border-top: 3px double #000; margin: 5px 0; }
+    .p-table      { width: 100%; border-collapse: collapse; }
+    .p-table th   { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 2px; text-align: left; font-size: 11px; }
+    .p-table td   { padding: 3px 2px; vertical-align: top; font-size: 11px; }
+    .p-right      { text-align: right; }
+    .p-phone-box  { border: 1px solid #000; text-align: center; padding: 3px 6px; margin: 5px 0; font-size: 11px; }
+    .p-footer-box { border: 1px solid #000; text-align: center; padding: 5px; margin-top: 8px; font-size: 10px; }
+    .p-logo       { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+    .p-section    { font-size: 11px; font-weight: bold; margin: 5px 0 2px; }
+</style>
+
+    <div class="p-center" style="margin-bottom:4px;">
+        <img src="{% static 'images/logo.jpeg' %}" class="p-logo" alt="Logo">
+    </div>
+
+    <div class="p-center">
+        <div class="p-bold" style="font-size:16px;">GS Boutique</div>
+        <div style="font-size:11px;">Premium Fabrics & Experts Stitching</div>
+        <div style="font-size:10px;">Opp. Dare Arqam School (New Campus)</div>
+        <div style="font-size:10px;">Talagang Road, Chakwal</div>
+    </div>
+
+    <div class="p-phone-box">Ph: 0370-6595870</div>
+
+    <div class="p-center p-bold" style="font-size:13px; margin:4px 0;">
+        RETURN / EXCHANGE INVOICE
+    </div>
+
+    <table class="p-table" style="margin-top:4px;">
+        <tr>
+            <td>Return No:</td>
+            <td class="p-right"><strong>RTN-{{ r.pk }}</strong></td>
+        </tr>
+        <tr>
+            <td>Date:</td>
+            <td class="p-right">{{ r.date|date:"d M, Y g:i A" }}</td>
+        </tr>
+        <tr>
+            <td>Original Sale:</td>
+            <td class="p-right">SALE-{{ r.sale.pk }}</td>
+        </tr>
+        <tr>
+            <td>Customer:</td>
+            <td class="p-right">{{ r.sale.customer.name|default:"Walk-in" }}</td>
+        </tr>
+        <tr>
+            <td>Type:</td>
+            <td class="p-right">{{ r.get_return_type_display }}</td>
+        </tr>
+        {% if r.notes %}
+        <tr>
+            <td>Reason:</td>
+            <td class="p-right">{{ r.notes }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="p-line"></div>
+
+    <div class="p-section">Returned Items:</div>
+    <table class="p-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="p-right">Qty</th>
+                <th class="p-right">Rate</th>
+                <th class="p-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in r.returned_items.all %}
+            <tr>
+                <td>{% if item.custom_name %}{{ item.custom_name }}{% elif item.product %}{{ item.product.name }}{% else %}-{% endif %}</td>
+                <td class="p-right">{{ item.quantity|floatformat:0 }}</td>
+                <td class="p-right">{{ item.price|floatformat:0 }}</td>
+                <td class="p-right">{{ item.total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="p-line"></div>
+
+    {% if r.return_type == 'exchange' %}
+    <div class="p-section">Exchange Items:</div>
+    <table class="p-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="p-right">Qty</th>
+                <th class="p-right">Rate</th>
+                <th class="p-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in r.exchange_items.all %}
+            <tr>
+                <td>{% if item.custom_name %}{{ item.custom_name }}{% elif item.product %}{{ item.product.name }}{% else %}-{% endif %}</td>
+                <td class="p-right">{{ item.quantity|floatformat:0 }}</td>
+                <td class="p-right">{{ item.price|floatformat:0 }}</td>
+                <td class="p-right">{{ item.total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="p-line"></div>
+    {% endif %}
+
+    <table class="p-table">
+        <tr>
+            <td>Returned:</td>
+            <td class="p-right">{{ r.refund_amount|floatformat:0 }}</td>
+        </tr>
+        {% if r.return_type == 'exchange' %}
+        <tr>
+            <td>Exchange:</td>
+            <td class="p-right">{{ r.exchange_amount|floatformat:0 }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            {% if r.return_type == 'exchange' %}
+                {% if r.net_balance > 0 %}
+                <td class="p-bold">Customer Pays:</td>
+                <td class="p-right p-bold">{{ r.net_balance|floatformat:0 }}</td>
+                {% elif r.net_balance < 0 %}
+                <td class="p-bold">Refund:</td>
+                <td class="p-right p-bold">{{ r.net_balance|floatformat:0|slice:"1:" }}</td>
+                {% else %}
+                <td class="p-bold">Balance:</td>
+                <td class="p-right p-bold">Even ✓</td>
+                {% endif %}
+            {% elif r.return_type == 'adjustment' %}
+                <td class="p-bold">Adjusted:</td>
+                <td class="p-right p-bold">{{ r.refund_amount|floatformat:0 }}</td>
+            {% else %}
+                <td class="p-bold">Refund:</td>
+                <td class="p-right p-bold">{{ r.refund_amount|floatformat:0 }}</td>
+            {% endif %}
+        </tr>
+    </table>
+
+    <div class="p-double"></div>
+
+    <div class="p-footer-box">
+        <div>No return or exchange without this invoice.</div>
+        <div class="p-bold" style="font-size:13px;">THANKS FOR SHOPPING</div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function printInvoice() {
+    document.getElementById('printArea').style.display = 'block';
+    window.print();
+    document.getElementById('printArea').style.display = 'none';
+}
+</script>
+{% endblock %}

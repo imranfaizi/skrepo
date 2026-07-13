@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block page_title %}New Purchase Invoice{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i>New Purchase Invoice</h5>
+    <a href="{% url 'purchase_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<form method="post" id="invoiceForm">
+{% csrf_token %}
+
+<!-- Invoice Header -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-info-circle me-2"></i>Invoice Details</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Supplier *</label>
+                <select name="supplier" class="form-select" required>
+                    <option value="">-- Select Supplier --</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.pk }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Invoice Number *</label>
+                <input type="text" name="invoice_number" class="form-control"
+                       value="{{ next_number }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Invoice Date *</label>
+                <input type="date" name="invoice_date" class="form-control"
+                       value="{{ today }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Due Date</label>
+                <input type="date" name="due_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Reference No</label>
+                <input type="text" name="reference_no" class="form-control" placeholder="Optional">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Notes</label>
+                <input type="text" name="notes" class="form-control" placeholder="Optional">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Items -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-box-seam me-2"></i>Invoice Items</h6>
+        <button type="button" class="btn-primary-custom btn btn-sm" onclick="addRow()">
+            <i class="bi bi-plus-lg"></i> Add Item
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0" id="itemsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Purchase Price</th>
+                    <th>Discount %</th>
+                    <th>Total</th>
+                    <th>Profit %</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody">
+                <tr id="row-1">
+                    <td>1</td>
+                    <td>
+                        <select name="product_id[]" class="form-select form-select-sm"
+                                onchange="updateProfit(1)" required>
+                            <option value="">-- Select Product --</option>
+                            {% for product in products %}
+                            <option value="{{ product.pk }}"
+                                    data-sale="{{ product.sale_price }}">
+                                {{ product.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="quantity[]" class="form-control form-control-sm"
+                               placeholder="0" step="0.01" min="0"
+                               oninput="calculateRow(1)" id="qty-1">
+                    </td>
+                    <td>
+                        <input type="number" name="purchase_price[]" class="form-control form-control-sm"
+                               placeholder="0" step="0.01" min="0"
+                               oninput="calculateRow(1)" id="price-1">
+                    </td>
+                    <td>
+                        <input type="number" name="discount[]" class="form-control form-control-sm"
+                               placeholder="0" step="0.01" min="0" max="100"
+                               oninput="calculateRow(1)" id="disc-1">
+                    </td>
+                    <td><span id="total-1" class="fw-bold text-success">Rs. 0</span></td>
+                    <td><span id="profit-1" class="badge bg-info">0%</span></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="removeRow(1)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Invoice Totals -->
+<div class="content-card mb-4">
+    <div class="card-body p-4">
+        <div class="row justify-content-end">
+            <div class="col-md-4">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="fw-semibold">Subtotal:</td>
+                        <td class="text-end fw-bold" id="subtotal">Rs. 0</td>
+                    </tr>
+                    <tr class="border-top">
+                        <td class="fw-bold fs-6">Net Total:</td>
+                        <td class="text-end fw-bold fs-6 text-success" id="nettotal">Rs. 0</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submit -->
+<div class="d-flex gap-3">
+    <button type="submit" class="btn-primary-custom btn">
+        <i class="bi bi-check-lg me-1"></i> Save Invoice
+    </button>
+    <a href="{% url 'purchase_list' %}" class="btn btn-outline-secondary">
+        Cancel
+    </a>
+</div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let rowCount = 1;
+
+function addRow() {
+    rowCount++;
+    const tbody = document.getElementById('itemsBody');
+    const row = document.createElement('tr');
+    row.id = `row-${rowCount}`;
+    row.innerHTML = `
+        <td>${rowCount}</td>
+        <td>
+            <select name="product_id[]" class="form-select form-select-sm"
+                    onchange="updateProfit(${rowCount})">
+                <option value="">-- Select Product --</option>
+                {% for product in products %}
+                <option value="{{ product.pk }}" data-sale="{{ product.sale_price }}">
+                    {{ product.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="quantity[]" class="form-control form-control-sm"
+                   placeholder="0" step="0.01" min="0"
+                   oninput="calculateRow(${rowCount})" id="qty-${rowCount}">
+        </td>
+        <td>
+            <input type="number" name="purchase_price[]" class="form-control form-control-sm"
+                   placeholder="0" step="0.01" min="0"
+                   oninput="calculateRow(${rowCount})" id="price-${rowCount}">
+        </td>
+        <td>
+            <input type="number" name="discount[]" class="form-control form-control-sm"
+                   placeholder="0" step="0.01" min="0" max="100"
+                   oninput="calculateRow(${rowCount})" id="disc-${rowCount}">
+        </td>
+        <td><span id="total-${rowCount}" class="fw-bold text-success">Rs. 0</span></td>
+        <td><span id="profit-${rowCount}" class="badge bg-info">0%</span></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="removeRow(${rowCount})">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(row);
+}
+
+function removeRow(id) {
+    const row = document.getElementById(`row-${id}`);
+    if (row) row.remove();
+    updateTotals();
+}
+
+function calculateRow(id) {
+    const qty = parseFloat(document.getElementById(`qty-${id}`)?.value || 0);
+    const price = parseFloat(document.getElementById(`price-${id}`)?.value || 0);
+    const disc = parseFloat(document.getElementById(`disc-${id}`)?.value || 0);
+    const total = (qty * price) - ((qty * price) * disc / 100);
+    const totalEl = document.getElementById(`total-${id}`);
+    if (totalEl) totalEl.textContent = `Rs. ${total.toFixed(2)}`;
+    updateTotals();
+    updateProfit(id);
+}
+
+function updateProfit(id) {
+    const select = document.querySelector(`#row-${id} select`);
+    const priceEl = document.getElementById(`price-${id}`);
+    const profitEl = document.getElementById(`profit-${id}`);
+    if (!select || !priceEl || !profitEl) return;
+    const salePrice = parseFloat(select.selectedOptions[0]?.dataset.sale || 0);
+    const purchasePrice = parseFloat(priceEl.value || 0);
+    if (purchasePrice > 0 && salePrice > 0) {
+        const profit = ((salePrice - purchasePrice) / purchasePrice * 100).toFixed(2);
+        profitEl.textContent = `${profit}%`;
+        profitEl.className = profit >= 0 ? 'badge bg-success' : 'badge bg-danger';
+    }
+}
+
+function updateTotals() {
+    let subtotal = 0;
+    document.querySelectorAll('[id^="total-"]').forEach(el => {
+        subtotal += parseFloat(el.textContent.replace('Rs. ', '') || 0);
+    });
+    document.getElementById('subtotal').textContent = `Rs. ${subtotal.toFixed(2)}`;
+    document.getElementById('nettotal').textContent = `Rs. ${subtotal.toFixed(2)}`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Edit Product{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-pencil me-2 text-primary"></i>Edit Product</h5>
+    <a href="{% url 'product_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Product Name *</label>
+                    <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Product Code</label>
+                    <input type="text" name="product_code" class="form-control" value="{{ product.product_code|default:'' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="">-- Select Category --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if product.category == cat %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sub Category</label>
+                    <select name="sub_category" class="form-select">
+                        <option value="">-- Select Sub Category --</option>
+                        {% for sub in subcategories %}
+                        <option value="{{ sub.pk }}" {% if product.sub_category == sub %}selected{% endif %}>
+                            {{ sub.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Manufacturer</label>
+                    <select name="manufacturer" class="form-select">
+                        <option value="">-- Select Manufacturer --</option>
+                        {% for man in manufacturers %}
+                        <option value="{{ man.pk }}" {% if product.manufacturer == man %}selected{% endif %}>
+                            {{ man.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Unit Type</label>
+                    <select name="unit_type" class="form-select">
+                        <option value="quantity" {% if product.unit_type == 'quantity' %}selected{% endif %}>By Quantity</option>
+                        <option value="meters" {% if product.unit_type == 'meters' %}selected{% endif %}>By Meters</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Purchase Price (Rs.)</label>
+                    <input type="number" name="purchase_price" class="form-control" value="{{ product.purchase_price }}" step="0.01" min="0">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sale Price (Rs.)</label>
+                    <input type="number" name="sale_price" class="form-control" value="{{ product.sale_price }}" step="0.01" min="0">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Stock Quantity</label>
+                    <input type="number" name="stock" class="form-control" value="{{ product.stock }}" step="0.01" min="0">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Low Stock Alert Level</label>
+                    <input type="number" name="stock_alert" class="form-control" value="{{ product.stock_alert }}" step="0.01" min="0">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Status</label>
+                    <div class="form-check mt-2">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="is_active"
+                            {% if product.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">Active</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold text-danger">
+                        <i class="bi bi-lock-fill me-1"></i> Admin Password *
+                    </label>
+                    <input type="password" name="edit_password" class="form-control"
+                           placeholder="Enter admin password to save changes" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn px-4" style="background-color:#e83e8c; color:white;">
+                        <i class="bi bi-check-lg me-1"></i> Update Product
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

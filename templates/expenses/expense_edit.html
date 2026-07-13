@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Edit Expense{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-pencil me-2 text-primary"></i>Edit Expense</h5>
+    <a href="{% url 'expense_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="content-card" style="max-width: 600px;">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Expense Title *</label>
+                    <input type="text" name="title" class="form-control"
+                           value="{{ expense.title }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="">-- Select Category --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}"
+                            {% if expense.category == cat %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Amount (Rs.) *</label>
+                    <input type="number" name="amount" class="form-control"
+                           value="{{ expense.amount }}" step="0.01" min="0" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Date *</label>
+                    <input type="date" name="date" class="form-control"
+                           value="{{ expense.date|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <textarea name="notes" class="form-control" rows="2">{{ expense.notes|default:'' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold text-danger">
+                        <i class="bi bi-lock-fill me-1"></i> Admin Password *
+                    </label>
+                    <input type="password" name="edit_password" class="form-control"
+                           placeholder="Enter admin password to save changes" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn-primary-custom btn">
+                        <i class="bi bi-check-lg me-1"></i> Update Expense
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

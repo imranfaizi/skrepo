@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Invoice Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Invoice #{{ invoice.invoice_number }}</h5>
+    <div class="d-flex gap-2">
+        <a href="{% url 'purchase_payment' invoice.pk %}" class="btn btn-sm btn-success">
+            <i class="bi bi-cash me-1"></i> Make Payment
+        </a>
+        <a href="{% url 'purchase_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Invoice Info -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header-custom">
+                <h6><i class="bi bi-info-circle me-2"></i>Invoice Information</h6>
+            </div>
+            <div class="card-body p-4">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">Invoice No:</td>
+                        <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Date:</td>
+                        <td>{{ invoice.invoice_date|date:"d M Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Due Date:</td>
+                        <td>{{ invoice.due_date|date:"d M Y"|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Reference:</td>
+                        <td>{{ invoice.reference_no|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Status:</td>
+                        <td>
+                            {% if invoice.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif invoice.status == 'partial' %}
+                                <span class="badge bg-warning text-dark">Partial</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="content-card">
+            <div class="card-header-custom">
+                <h6><i class="bi bi-person me-2"></i>Supplier Information</h6>
+            </div>
+            <div class="card-body p-4">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">Name:</td>
+                        <td><strong>{{ invoice.supplier.name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Business:</td>
+                        <td>{{ invoice.supplier.business_name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Phone:</td>
+                        <td>{{ invoice.supplier.phone|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Total Paid:</td>
+                        <td><strong class="text-success">Rs. {{ invoice.paid_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Balance:</td>
+                        <td><strong class="text-danger">Rs. {{ invoice.balance|floatformat:2 }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Items -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-box-seam me-2"></i>Invoice Items</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Purchase Price</th>
+                    <th>Discount</th>
+                    <th>Total</th>
+                    <th>Profit %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ item.product.name }}</strong></td>
+                    <td>{{ item.quantity|floatformat:2 }}</td>
+                    <td>Rs. {{ item.purchase_price|floatformat:2 }}</td>
+                    <td>{{ item.discount|floatformat:2 }}%</td>
+                    <td>Rs. {{ item.total_price|floatformat:2 }}</td>
+                    <td>
+                        <span class="badge bg-success">{{ item.profit_percentage|floatformat:2 }}%</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-light">
+                    <td colspan="5" class="text-end fw-bold">Net Total:</td>
+                    <td colspan="2" class="fw-bold text-success">Rs. {{ invoice.net_total|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

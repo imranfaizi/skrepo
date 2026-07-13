@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% block page_title %}Sales{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-cart3 me-2 text-primary"></i>Sales</h5>
+    <a href="{% url 'sale_add' %}" class="btn-primary-custom btn"><i class="bi bi-plus-lg me-1"></i> New Sale</a>
+</div>
+<div class="content-card mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" placeholder="Search by invoice number or customer name..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-primary-custom btn w-100"><i class="bi bi-search me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #e83e8c, #c2185b);">
+            <i class="bi bi-cart3 card-icon"></i>
+            <div class="label">Total Revenue</div>
+            <div class="value">Rs. {{ total_revenue|floatformat:0 }}</div>
+            <div class="sub">All Time</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+            <i class="bi bi-graph-up card-icon"></i>
+            <div class="label">Total Profit</div>
+            <div class="value">
+                <span id="totalProfitDisplay">••••••</span>
+                <button onclick="toggleTotalProfit()"
+                        class="btn btn-sm ms-2"
+                        style="background:rgba(255,255,255,0.2); border:none; color:white; padding:2px 8px;"
+                        id="totalProfitBtn">
+                    <i class="bi bi-eye-slash"></i>
+                </button>
+            </div>
+            <div class="sub">All Time</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+            <i class="bi bi-receipt card-icon"></i>
+            <div class="label">Total Sales</div>
+            <div class="value">{{ sales|length }}</div>
+            <div class="sub">All Orders</div>
+        </div>
+    </div>
+</div>
+<div class="content-card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Invoice</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th>Advance</th>
+                    <th>Balance</th>
+                    <th>
+                        Profit
+                        <button onclick="toggleProfitColumn()"
+                                class="btn btn-sm btn-outline-secondary ms-1"
+                                style="padding:1px 6px; font-size:11px;"
+                                id="profitColBtn">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ sale.invoice_number }}</strong></td>
+                    <td>{{ sale.customer.name|default:"Walk-in" }}</td>
+                    <td>{{ sale.sale_date|date:"d M Y" }}</td>
+                    <td><span class="badge bg-info">{{ sale.get_payment_method_display }}</span></td>
+                    <td><strong>Rs. {{ sale.net_total|floatformat:0 }}</strong></td>
+                    <td><span class="text-primary fw-bold">Rs. {{ sale.advance_payment|floatformat:0 }}</span></td>
+                    <td>
+                        {% if sale.balance > 0 %}
+                        <span class="text-danger fw-bold">Rs. {{ sale.balance|floatformat:0 }}</span>
+                        {% else %}
+                        <span class="badge bg-success">Paid</span>
+                        {% endif %}
+                    </td>
+                    <td class="profit-cell">
+                        <span class="profit-value text-success fw-bold" data-value="Rs. {{ sale.total_profit|floatformat:0 }}">••••</span>
+                    </td>
+                    <td>
+                        <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-warning"
+                                onclick="confirmEditAccess('{% url 'sale_edit' sale.pk %}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="globalConfirmDelete('{% url 'sale_delete' sale.pk %}', '{{ sale.invoice_number }}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10" class="text-center text-muted py-4">No sales found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Password Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-warning">
+                    <i class="bi bi-lock-fill me-2"></i>Admin Password Required
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Enter admin password to edit this sale.</p>
+                <input type="password" id="editPassword"
+                       class="form-control" placeholder="Enter password...">
+                <div id="editError" class="text-danger small mt-2" style="display:none;">
+                    Incorrect password!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-warning" onclick="submitEditPassword()">
+                    <i class="bi bi-pencil me-1"></i> Edit Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profit Password Modal -->
+<div class="modal fade" id="profitModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="bi bi-lock-fill me-2 text-warning"></i>Enter Password to View Profit
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="password" id="profitPassword" class="form-control" placeholder="Enter password...">
+                <div id="profitError" class="text-danger small mt-2" style="display:none;">Incorrect password!</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-warning" onclick="submitProfitPassword()">
+                    <i class="bi bi-eye me-1"></i> Show Profit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let profitVisible = false;
+let editUrl = '';
+
+function confirmEditAccess(url) {
+    editUrl = url;
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editError').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function submitEditPassword() {
+    const pwd = document.getElementById('editPassword').value;
+    if (pwd !== 'boutique123') {
+        document.getElementById('editError').style.display = 'block';
+        return;
+    }
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+    modal.hide();
+    setTimeout(function() {
+        window.location.href = editUrl;
+    }, 300);
+}
+
+function toggleTotalProfit() {
+    if (!profitVisible) {
+        document.getElementById('profitPassword').value = '';
+        document.getElementById('profitError').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('profitModal')).show();
+    } else {
+        hideProfits();
+    }
+}
+
+function toggleProfitColumn() {
+    if (!profitVisible) {
+        document.getElementById('profitPassword').value = '';
+        document.getElementById('profitError').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('profitModal')).show();
+    } else {
+        hideProfits();
+    }
+}
+
+function submitProfitPassword() {
+    const pwd = document.getElementById('profitPassword').value;
+    if (pwd !== 'boutique123') {
+        document.getElementById('profitError').style.display = 'block';
+        return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('profitModal')).hide();
+    showProfits();
+}
+
+function showProfits() {
+    profitVisible = true;
+    const totalVal = '{{ total_profit|floatformat:0 }}';
+    document.getElementById('totalProfitDisplay').textContent = 'Rs. ' + totalVal;
+    document.getElementById('totalProfitBtn').innerHTML = '<i class="bi bi-eye"></i>';
+    document.querySelectorAll('.profit-value').forEach(el => {
+        el.textContent = el.dataset.value;
+        el.classList.add('text-success');
+    });
+    document.getElementById('profitColBtn').innerHTML = '<i class="bi bi-eye"></i>';
+}
+
+function hideProfits() {
+    profitVisible = false;
+    document.getElementById('totalProfitDisplay').textContent = '••••••';
+    document.getElementById('totalProfitBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
+    document.querySelectorAll('.profit-value').forEach(el => {
+        el.textContent = '••••';
+    });
+    document.getElementById('profitColBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block page_title %}Profit & Loss Report{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-calculator me-2 text-primary"></i>Profit & Loss Report</h5>
+    <a href="{% url 'reports_home' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+<div class="content-card mb-4">
+    <div class="card-header-custom"><h6><i class="bi bi-funnel me-2"></i>Filter by Date</h6></div>
+    <div class="card-body p-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn-primary-custom btn w-100"><i class="bi bi-search me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+            <div class="label">Total Revenue</div>
+            <div class="value">Rs. {{ total_revenue|floatformat:2 }}</div>
+            <div class="sub">From Sales</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+            <div class="label">Gross Profit</div>
+            <div class="value">Rs. {{ total_profit|floatformat:2 }}</div>
+            <div class="sub">Before Expenses</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+            <div class="label">Total Expenses</div>
+            <div class="value">Rs. {{ total_expenses|floatformat:2 }}</div>
+            <div class="sub">All Costs</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: {% if net_profit >= 0 %}linear-gradient(135deg, #9b59b6, #8e44ad){% else %}linear-gradient(135deg, #e74c3c, #c0392b){% endif %};">
+            <div class="label">Net Profit</div>
+            <div class="value">Rs. {{ net_profit|floatformat:2 }}</div>
+            <div class="sub">{% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</div>
+        </div>
+    </div>
+</div>
+<div class="content-card">
+    <div class="card-header-custom"><h6><i class="bi bi-table me-2"></i>Summary</h6></div>
+    <div class="card-body p-4">
+        <table class="table table-borderless mb-0">
+            <tr><td class="fw-semibold">Total Revenue:</td><td class="text-end">Rs. {{ total_revenue|floatformat:2 }}</td></tr>
+            <tr><td class="fw-semibold">Cost of Goods Sold:</td><td class="text-end text-danger">- Rs. {{ total_profit|floatformat:2 }}</td></tr>
+            <tr class="border-top"><td class="fw-semibold">Gross Profit:</td><td class="text-end text-success fw-bold">Rs. {{ total_profit|floatformat:2 }}</td></tr>
+            <tr><td class="fw-semibold">Total Expenses:</td><td class="text-end text-danger">- Rs. {{ total_expenses|floatformat:2 }}</td></tr>
+            <tr class="border-top border-2"><td class="fw-bold fs-6">Net Profit:</td><td class="text-end fw-bold fs-6 {% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">Rs. {{ net_profit|floatformat:2 }}</td></tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

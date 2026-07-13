@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+{% block page_title %}Return / Exchange{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-arrow-return-left me-2 text-danger"></i>Return / Exchange</h5>
+    <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Sale
+    </a>
+</div>
+
+<!-- Original Sale Info -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-receipt me-2"></i>Original Sale — SALE-{{ sale.pk }}</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <span class="text-muted small">Customer</span>
+                <div class="fw-bold">{{ sale.customer.name|default:"Walk-in" }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Date</span>
+                <div class="fw-bold">{{ sale.sale_date|date:"d M Y" }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Total</span>
+                <div class="fw-bold text-success">Rs. {{ sale.net_total|floatformat:0 }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Payment</span>
+                <div class="fw-bold">{{ sale.get_payment_method_display }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" id="returnForm">
+{% csrf_token %}
+
+<!-- Return Type -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-ui-radios me-2"></i>Return Type</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="return_type"
+                           id="rt_refund" value="refund" checked onchange="toggleReturnType()">
+                    <label class="form-check-label fw-semibold" for="rt_refund">
+                        <i class="bi bi-cash me-1 text-success"></i> Return with Refund
+                    </label>
+                    <div class="text-muted small">Refund cash back to customer</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="return_type"
+                           id="rt_adjustment" value="adjustment" onchange="toggleReturnType()">
+                    <label class="form-check-label fw-semibold" for="rt_adjustment">
+                        <i class="bi bi-calculator me-1 text-warning"></i> Adjust in Balance
+                    </label>
+                    <div class="text-muted small">Adjust amount in pending balance</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="return_type"
+                           id="rt_exchange" value="exchange" onchange="toggleReturnType()">
+                    <label class="form-check-label fw-semibold" for="rt_exchange">
+                        <i class="bi bi-arrow-left-right me-1 text-primary"></i> Exchange with Product
+                    </label>
+                    <div class="text-muted small">Return and take new item</div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <label class="form-label fw-semibold">Notes / Reason</label>
+            <input type="text" name="notes" class="form-control" placeholder="Reason for return...">
+        </div>
+    </div>
+</div>
+
+<!-- Returned Items -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-box-arrow-in-left me-2 text-danger"></i>Items Being Returned</h6>
+        <button type="button" class="btn btn-sm btn-danger" onclick="addReturnRow()">
+            <i class="bi bi-plus-lg"></i> Add Item
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th width="40">#</th>
+                    <th width="80">Type</th>
+                    <th>Item</th>
+                    <th width="100">Qty</th>
+                    <th width="130">Price (Rs.)</th>
+                    <th width="130">Total (Rs.)</th>
+                    <th width="50"></th>
+                </tr>
+            </thead>
+            <tbody id="returnItemsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Exchange Items -->
+<div class="content-card mb-4" id="exchangeSection" style="display:none;">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-box-arrow-right me-2 text-primary"></i>New Items Given in Exchange</h6>
+        <button type="button" class="btn btn-sm btn-primary" onclick="addExchangeRow()">
+            <i class="bi bi-plus-lg"></i> Add Item
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th width="40">#</th>
+                    <th width="80">Type</th>
+                    <th>Item</th>
+                    <th width="80">Stock</th>
+                    <th width="100">Qty</th>
+                    <th width="130">Price (Rs.)</th>
+                    <th width="130">Total (Rs.)</th>
+                    <th width="50"></th>
+                </tr>
+            </thead>
+            <tbody id="exchangeItemsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-calculator me-2"></i>Summary</h6>
+    </div>
+    <div class="card-body p-4">
+        <table class="table table-borderless mb-0" style="max-width:420px;">
+            <tr>
+                <td class="fw-semibold">Returned Amount:</td>
+                <td class="text-end fw-bold text-danger" id="summaryRefund">Rs. 0</td>
+            </tr>
+            <tr id="exchangeRow" style="display:none;">
+                <td class="fw-semibold">Exchange Amount:</td>
+                <td class="text-end fw-bold text-primary" id="summaryExchange">Rs. 0</td>
+            </tr>
+            <tr style="border-top:2px solid #dee2e6;">
+                <td class="fw-bold fs-6" id="balanceLabel">Refund to Customer:</td>
+                <td class="text-end fw-bold fs-6" id="summaryBalance">Rs. 0</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Submit -->
+<div class="d-flex gap-3 mb-4">
+    <button type="submit" class="btn btn-danger">
+        <i class="bi bi-check-lg me-1"></i> Process Return
+    </button>
+    <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-outline-secondary">Cancel</a>
+</div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let retCount = 0;
+let excCount = 0;
+
+const products = [
+    { id: '', name: '-- Select Product --', stock: 0, price: 0 },
+    {% for p in products %}
+    { id: '{{ p.pk }}', name: '{{ p.name }}', stock: {{ p.stock }}, price: Math.round({{ p.sale_price }}) },
+    {% endfor %}
+];
+
+function toggleReturnType() {
+    const type = document.querySelector('input[name="return_type"]:checked').value;
+    document.getElementById('exchangeSection').style.display = type === 'exchange' ? 'block' : 'none';
+    document.getElementById('exchangeRow').style.display     = type === 'exchange' ? '' : 'none';
+    updateSummary();
+}
+
+function addReturnRow() {
+    retCount++;
+    const n = retCount;
+    const tbody = document.getElementById('returnItemsBody');
+    const row = document.createElement('tr');
+    row.id = `retrow-${n}`;
+    row.innerHTML = `
+        <td>${n}</td>
+        <td>
+            <div class="form-check form-switch mt-1">
+                <input class="form-check-input" type="checkbox" id="retmanual-${n}" onchange="toggleRetManual(${n})">
+                <label class="form-check-label small" for="retmanual-${n}">Manual</label>
+                <input type="hidden" name="ret_is_manual[]" id="ret_is_manual-${n}" value="no">
+            </div>
+        </td>
+        <td>
+            <select name="ret_product_id[]" class="form-select form-select-sm" id="retprod-${n}" onchange="fillRetPrice(${n})">
+                ${products.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('')}
+            </select>
+            <input type="text" name="ret_custom_name[]" id="retcustom-${n}"
+                   class="form-control form-control-sm d-none" placeholder="Item name...">
+        </td>
+        <td>
+            <input type="number" name="ret_quantity[]" id="retqty-${n}"
+                   class="form-control form-control-sm" placeholder="0" step="1" min="0"
+                   oninput="calcRetRow(${n})">
+        </td>
+        <td>
+            <input type="number" name="ret_price[]" id="retprice-${n}"
+                   class="form-control form-control-sm" placeholder="0" step="1" min="0"
+                   oninput="calcRetRow(${n})">
+        </td>
+        <td><strong id="rettotal-${n}" class="text-danger">0</strong></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="document.getElementById('retrow-${n}').remove(); updateSummary();">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>`;
+    tbody.appendChild(row);
+}
+
+function toggleRetManual(n) {
+    const manual = document.getElementById(`retmanual-${n}`).checked;
+    document.getElementById(`retprod-${n}`).classList.toggle('d-none', manual);
+    document.getElementById(`retcustom-${n}`).classList.toggle('d-none', !manual);
+    document.getElementById(`ret_is_manual-${n}`).value = manual ? 'yes' : 'no';
+    if (!manual) fillRetPrice(n);
+}
+
+function fillRetPrice(n) {
+    const sel   = document.getElementById(`retprod-${n}`);
+    const price = sel.selectedOptions[0]?.dataset.price || 0;
+    document.getElementById(`retprice-${n}`).value = price;
+    calcRetRow(n);
+}
+
+function calcRetRow(n) {
+    const qty   = parseInt(document.getElementById(`retqty-${n}`)?.value || 0);
+    const price = parseInt(document.getElementById(`retprice-${n}`)?.value || 0);
+    document.getElementById(`rettotal-${n}`).textContent = qty * price;
+    updateSummary();
+}
+
+function addExchangeRow() {
+    excCount++;
+    const n = excCount;
+    const tbody = document.getElementById('exchangeItemsBody');
+    const row = document.createElement('tr');
+    row.id = `excrow-${n}`;
+    row.innerHTML = `
+        <td>${n}</td>
+        <td>
+            <div class="form-check form-switch mt-1">
+                <input class="form-check-input" type="checkbox" id="excmanual-${n}" onchange="toggleExcManual(${n})">
+                <label class="form-check-label small" for="excmanual-${n}">Manual</label>
+                <input type="hidden" name="exc_is_manual[]" id="exc_is_manual-${n}" value="no">
+            </div>
+        </td>
+        <td>
+            <select name="exc_product_id[]" class="form-select form-select-sm" id="excprod-${n}" onchange="fillExcPrice(${n})">
+                ${products.map(p => `<option value="${p.id}" data-stock="${p.stock}" data-price="${p.price}">${p.name}</option>`).join('')}
+            </select>
+            <input type="text" name="exc_custom_name[]" id="exccustom-${n}"
+                   class="form-control form-control-sm d-none" placeholder="Item name...">
+        </td>
+        <td><span id="excstock-${n}" class="badge bg-secondary">-</span></td>
+        <td>
+            <input type="number" name="exc_quantity[]" id="excqty-${n}"
+                   class="form-control form-control-sm" placeholder="0" step="1" min="0"
+                   oninput="calcExcRow(${n})">
+        </td>
+        <td>
+            <input type="number" name="exc_price[]" id="excprice-${n}"
+                   class="form-control form-control-sm" placeholder="0" step="1" min="0"
+                   oninput="calcExcRow(${n})">
+        </td>
+        <td><strong id="exctotal-${n}" class="text-primary">0</strong></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="document.getElementById('excrow-${n}').remove(); updateSummary();">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>`;
+    tbody.appendChild(row);
+}
+
+function toggleExcManual(n) {
+    const manual = document.getElementById(`excmanual-${n}`).checked;
+    document.getElementById(`excprod-${n}`).classList.toggle('d-none', manual);
+    document.getElementById(`exccustom-${n}`).classList.toggle('d-none', !manual);
+    document.getElementById(`exc_is_manual-${n}`).value = manual ? 'yes' : 'no';
+    document.getElementById(`excstock-${n}`).textContent = manual ? 'N/A' : '-';
+    if (!manual) fillExcPrice(n);
+}
+
+function fillExcPrice(n) {
+    const sel   = document.getElementById(`excprod-${n}`);
+    const opt   = sel.selectedOptions[0];
+    const price = opt?.dataset.price || 0;
+    const stock = opt?.dataset.stock || '-';
+    document.getElementById(`excprice-${n}`).value = price;
+    const stockEl = document.getElementById(`excstock-${n}`);
+    stockEl.textContent = stock;
+    stockEl.className   = parseFloat(stock) > 0 ? 'badge bg-success' : 'badge bg-danger';
+    calcExcRow(n);
+}
+
+function calcExcRow(n) {
+    const qty   = parseInt(document.getElementById(`excqty-${n}`)?.value || 0);
+    const price = parseInt(document.getElementById(`excprice-${n}`)?.value || 0);
+    document.getElementById(`exctotal-${n}`).textContent = qty * price;
+    updateSummary();
+}
+
+function updateSummary() {
+    let refundTotal   = 0;
+    let exchangeTotal = 0;
+
+    document.querySelectorAll('[id^="rettotal-"]').forEach(el => {
+        refundTotal += parseInt(el.textContent || 0);
+    });
+    document.querySelectorAll('[id^="exctotal-"]').forEach(el => {
+        exchangeTotal += parseInt(el.textContent || 0);
+    });
+
+    const type    = document.querySelector('input[name="return_type"]:checked').value;
+    const balance = exchangeTotal - refundTotal;
+
+    document.getElementById('summaryRefund').textContent   = `Rs. ${refundTotal}`;
+    document.getElementById('summaryExchange').textContent = `Rs. ${exchangeTotal}`;
+
+    const balEl   = document.getElementById('summaryBalance');
+    const labelEl = document.getElementById('balanceLabel');
+
+    if (type === 'exchange') {
+        if (balance > 0) {
+            labelEl.textContent = 'Customer Pays More:';
+            balEl.textContent   = `Rs. ${balance}`;
+            balEl.className     = 'text-end fw-bold fs-6 text-danger';
+        } else if (balance < 0) {
+            labelEl.textContent = 'Refund to Customer:';
+            balEl.textContent   = `Rs. ${Math.abs(balance)}`;
+            balEl.className     = 'text-end fw-bold fs-6 text-success';
+        } else {
+            labelEl.textContent = 'Even Exchange:';
+            balEl.textContent   = 'No Balance ✓';
+            balEl.className     = 'text-end fw-bold fs-6 text-success';
+        }
+    } else {
+        labelEl.textContent = type === 'adjustment' ? 'Adjusted in Balance:' : 'Refund to Customer:';
+        balEl.textContent   = `Rs. ${refundTotal}`;
+        balEl.className     = 'text-end fw-bold fs-6 text-success';
+    }
+}
+
+window.onload = function () { addReturnRow(); };
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block page_title %}Customers{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-people me-2 text-primary"></i>Customers</h5>
+    <a href="{% url 'customer_add' %}" class="btn-primary-custom btn"><i class="bi bi-plus-lg me-1"></i> Add Customer</a>
+</div>
+<div class="content-card mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" placeholder="Search by name or phone..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-primary-custom btn w-100"><i class="bi bi-search me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="content-card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Email</th><th>Total Purchases</th><th>Total Spent</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ customer.name }}</strong></td>
+                    <td>{{ customer.phone|default:"-" }}</td>
+                    <td>{{ customer.email|default:"-" }}</td>
+                    <td>{{ customer.total_purchases }}</td>
+                    <td>Rs. {{ customer.total_spent|floatformat:2 }}</td>
+                    <td>
+                        <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                        <a href="#" class="btn btn-sm btn-outline-danger"
+                           onclick="globalConfirmDelete('{% url 'customer_delete' customer.pk %}', '{{ customer.name }}')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No customers found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

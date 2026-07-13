@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Add Product{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>Add Product</h5>
+    <a href="{% url 'product_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Product Name *</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Lawn Suit" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Product Code</label>
+                    <input type="text" name="product_code" class="form-control" placeholder="e.g. PRD001">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="">-- Select Category --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sub Category</label>
+                    <select name="sub_category" class="form-select">
+                        <option value="">-- Select Sub Category --</option>
+                        {% for sub in subcategories %}
+                        <option value="{{ sub.pk }}">{{ sub.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Manufacturer</label>
+                    <select name="manufacturer" class="form-select">
+                        <option value="">-- Select Manufacturer --</option>
+                        {% for man in manufacturers %}
+                        <option value="{{ man.pk }}">{{ man.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Unit Type</label>
+                    <select name="unit_type" class="form-select">
+                        <option value="quantity">By Quantity</option>
+                        <option value="meters">By Meters</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Purchase Price (Rs.)</label>
+                    <input type="number" name="purchase_price" class="form-control" placeholder="0" step="0.01" min="0">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sale Price (Rs.)</label>
+                    <input type="number" name="sale_price" class="form-control" placeholder="0" step="0.01" min="0">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Stock Quantity</label>
+                    <input type="number" name="stock" class="form-control" placeholder="0" step="0.01" min="0">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Low Stock Alert Level</label>
+                    <input type="number" name="stock_alert" class="form-control" placeholder="5" step="0.01" min="0">
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn px-4" style="background-color:#e83e8c; color:white;">
+                        <i class="bi bi-check-lg me-1"></i> Save Product
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

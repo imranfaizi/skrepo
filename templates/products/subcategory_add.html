@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Add Sub Category{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Add Sub Category</h5>
+    <a href="{% url 'subcategory_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="content-card" style="max-width: 500px;">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Parent Category *</label>
+
+                <!-- Toggle -->
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="manualCategoryToggle"
+                           onchange="toggleCategoryInput()">
+                    <label class="form-check-label small text-muted" for="manualCategoryToggle">
+                        Type manually (if not in list)
+                    </label>
+                </div>
+
+                <!-- Dropdown -->
+                <select name="category" class="form-select" id="categoryDropdown" required>
+                    <option value="">-- Select Category --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.pk }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Manual Input (hidden by default) -->
+                <input type="text" name="category_manual" id="categoryManual"
+                       class="form-control d-none"
+                       placeholder="Type new category name...">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Sub Category Name *</label>
+                <input type="text" name="name" class="form-control"
+                       placeholder="e.g. Unstitched, Stitched, Printed" required>
+                <div class="form-text">
+                    Examples: Unstitched, Stitched, Printed, Embroidered, Plain
+                </div>
+            </div>
+            <button type="submit" class="btn-primary-custom btn w-100">
+                <i class="bi bi-check-lg me-1"></i> Save Sub Category
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleCategoryInput() {
+    const isManual = document.getElementById('manualCategoryToggle').checked;
+    const dropdown = document.getElementById('categoryDropdown');
+    const manual = document.getElementById('categoryManual');
+
+    if (isManual) {
+        dropdown.classList.add('d-none');
+        dropdown.removeAttribute('required');
+        manual.classList.remove('d-none');
+        manual.setAttribute('required', 'required');
+    } else {
+        dropdown.classList.remove('d-none');
+        dropdown.setAttribute('required', 'required');
+        manual.classList.add('d-none');
+        manual.removeAttribute('required');
+    }
+}
+</script>
+{% endblock %}

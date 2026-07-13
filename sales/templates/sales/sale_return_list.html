@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block page_title %}Returns & Exchanges{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-arrow-return-left me-2 text-danger"></i>Returns & Exchanges</h5>
+    <a href="{% url 'sale_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Sales
+    </a>
+</div>
+
+{% if returns %}
+<div class="content-card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Return No</th>
+                    <th>Original Sale</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th class="text-end">Returned</th>
+                    <th class="text-end">Exchange</th>
+                    <th class="text-end">Net Balance</th>
+                    <th width="80"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in returns %}
+                <tr>
+                    <td><strong>RTN-{{ r.pk }}</strong></td>
+                    <td>
+                        <a href="{% url 'sale_detail' r.sale.pk %}">
+                            SALE-{{ r.sale.pk }}
+                        </a>
+                    </td>
+                    <td>{{ r.sale.customer.name|default:"Walk-in" }}</td>
+                    <td>{{ r.date|date:"d M Y" }}</td>
+                    <td>
+                        <span class="badge
+                            {% if r.return_type == 'refund' %}bg-success
+                            {% elif r.return_type == 'adjustment' %}bg-warning text-dark
+                            {% else %}bg-primary{% endif %}">
+                            {{ r.get_return_type_display }}
+                        </span>
+                    </td>
+                    <td class="text-end text-danger fw-bold">
+                        Rs. {{ r.refund_amount|floatformat:0 }}
+                    </td>
+                    <td class="text-end text-primary fw-bold">
+                        {% if r.return_type == 'exchange' %}
+                            Rs. {{ r.exchange_amount|floatformat:0 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold">
+                        {% if r.return_type == 'exchange' %}
+                            {% if r.net_balance > 0 %}
+                                <span class="text-danger">Rs. {{ r.net_balance|floatformat:0 }}</span>
+                            {% elif r.net_balance < 0 %}
+                                <span class="text-success">Rs. {{ r.net_balance|floatformat:0|slice:"1:" }}</span>
+                            {% else %}
+                                <span class="text-success">Even ✓</span>
+                            {% endif %}
+                        {% elif r.return_type == 'adjustment' %}
+                            <span class="text-warning">Adjusted</span>
+                        {% else %}
+                            <span class="text-success">Rs. {{ r.refund_amount|floatformat:0 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'sale_return_invoice' r.pk %}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="content-card">
+    <div class="card-body p-5 text-center text-muted">
+        <i class="bi bi-arrow-return-left fs-1 mb-3 d-block"></i>
+        No returns or exchanges found.
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

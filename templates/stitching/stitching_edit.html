@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% block page_title %}Edit Stitching Order{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-pencil me-2 text-primary"></i>Edit Stitching Order</h5>
+    <a href="{% url 'stitching_detail' order.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<form method="post">
+{% csrf_token %}
+
+<!-- Customer & Basic Info -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-person me-2"></i>Customer Information</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Select Customer</label>
+                <select name="customer" class="form-select" id="customerSelect" onchange="loadCustomerMeasurements()">
+                    <option value="">-- Walk-in Customer --</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.pk }}" {% if order.customer == customer %}selected{% endif %}>
+                        {{ customer.name }} {% if customer.phone %}({{ customer.phone }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Customer Name *</label>
+                <input type="text" name="customer_name" id="customerName" class="form-control"
+                       value="{{ order.customer_name }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Customer Phone</label>
+                <input type="text" name="customer_phone" id="customerPhone" class="form-control"
+                       value="{{ order.customer_phone|default:'' }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Code Number</label>
+                <input type="text" name="code_number" class="form-control"
+                       value="{{ order.code_number|default:'' }}" placeholder="e.g. A-101">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Fabric</label>
+                <input type="text" class="form-control"
+                       value="{{ order.fabric.name|default:'No fabric selected' }}" disabled>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Stitching Cost (Rs.)</label>
+                <input type="number" name="stitching_cost" id="stitchingCost" class="form-control"
+                       value="{{ order.stitching_cost|floatformat:0 }}" step="1" min="0" oninput="updateBalance()">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Cash Received (Rs.)</label>
+                <input type="number" name="advance_payment" id="advancePayment" class="form-control"
+                       value="{{ order.advance_payment|floatformat:0 }}" step="1" min="0" oninput="updateBalance()">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Remaining Balance (Rs.)</label>
+                <input type="text" id="remainingBalance" class="form-control bg-light fw-bold text-danger" readonly
+                       value="{{ order.balance|floatformat:0 }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Delivery Date</label>
+                <input type="date" name="delivery_date" class="form-control"
+                       value="{{ order.delivery_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Status</label>
+                <select name="status" class="form-select">
+                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="in_progress" {% if order.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Size & Measurements -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-rulers me-2"></i>Size & Measurements</h6>
+        <span class="badge bg-info">All fields editable</span>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Select Size</label>
+                <select name="size" class="form-select" id="sizeSelect" onchange="loadSizeMeasurements()">
+                    <option value="">-- Select Size --</option>
+                    <optgroup label="Kids Sizes">
+                        <option value="20" {% if order.size == '20' %}selected{% endif %}>Size 20 (Age 2-3)</option>
+                        <option value="22" {% if order.size == '22' %}selected{% endif %}>Size 22 (Age 4-5)</option>
+                        <option value="24" {% if order.size == '24' %}selected{% endif %}>Size 24 (Age 6-7)</option>
+                        <option value="26" {% if order.size == '26' %}selected{% endif %}>Size 26 (Age 8-9)</option>
+                        <option value="28" {% if order.size == '28' %}selected{% endif %}>Size 28 (Age 10-11)</option>
+                        <option value="30" {% if order.size == '30' %}selected{% endif %}>Size 30 (Age 12-13)</option>
+                    </optgroup>
+                    <optgroup label="Adult Sizes">
+                        <option value="32" {% if order.size == '32' %}selected{% endif %}>Size 32 (XS)</option>
+                        <option value="34" {% if order.size == '34' %}selected{% endif %}>Size 34 (S)</option>
+                        <option value="36" {% if order.size == '36' %}selected{% endif %}>Size 36 (M)</option>
+                        <option value="38" {% if order.size == '38' %}selected{% endif %}>Size 38 (L)</option>
+                        <option value="40" {% if order.size == '40' %}selected{% endif %}>Size 40 (XL)</option>
+                        <option value="42" {% if order.size == '42' %}selected{% endif %}>Size 42 (XXL)</option>
+                        <option value="44" {% if order.size == '44' %}selected{% endif %}>Size 44 (3XL)</option>
+                        <option value="46" {% if order.size == '46' %}selected{% endif %}>Size 46 (4XL)</option>
+                    </optgroup>
+                    <option value="custom" {% if order.size == 'custom' %}selected{% endif %}>Custom Size</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Kameez -->
+        <h6 class="fw-bold mb-3" style="color:#e83e8c;"><i class="bi bi-shirt me-2"></i>Kameez Measurements (inches)</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Shirt Length</label>
+                <input type="text" name="shirt_length" id="shirt_length" class="form-control" value="{{ order.shirt_length|default:'' }}">
+            </div>
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Shoulder</label>
+                <input type="text" name="shoulder" id="shoulder" class="form-control" value="{{ order.shoulder|default:'' }}">
+            </div>
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Chest</label>
+                <input type="text" name="chest" id="chest" class="form-control" value="{{ order.chest|default:'' }}">
+            </div>
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Waist</label>
+                <input type="text" name="waist" id="waist" class="form-control" value="{{ order.waist|default:'' }}">
+            </div>
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Sleeve Length</label>
+                <input type="text" name="sleeve_length" id="sleeve_length" class="form-control" value="{{ order.sleeve_length|default:'' }}">
+            </div>
+            <div class="col-md-4 col-6">
+                <label class="form-label fw-semibold">Collar</label>
+                <input type="text" name="collar" id="collar" class="form-control" value="{{ order.collar|default:'' }}">
+            </div>
+        </div>
+
+        <!-- Shalwar -->
+        <h6 class="fw-bold mb-3" style="color:#3498db;"><i class="bi bi-rulers me-2"></i>Shalwar Measurements (inches)</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold">Shalwar Length</label>
+                <input type="text" name="shalwar_length" id="shalwar_length" class="form-control" value="{{ order.shalwar_length|default:'' }}">
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold">Shalwar Waist</label>
+                <input type="text" name="shalwar_waist" id="shalwar_waist" class="form-control" value="{{ order.shalwar_waist|default:'' }}">
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold">Hip</label>
+                <input type="text" name="hip" id="hip" class="form-control" value="{{ order.hip|default:'' }}">
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold">Bottom Width</label>
+                <input type="text" name="bottom_width" id="bottom_width" class="form-control" value="{{ order.bottom_width|default:'' }}">
+            </div>
+        </div>
+
+        <!-- Extra -->
+        <h6 class="fw-bold mb-3" style="color:#2ecc71;"><i class="bi bi-plus-circle me-2"></i>Other Measurements / Notes</h6>
+        <textarea name="extra_measurements" id="extra_measurements" class="form-control" rows="3">{{ order.extra_measurements|default:'' }}</textarea>
+    </div>
+</div>
+
+<!-- Notes -->
+<div class="content-card mb-4">
+    <div class="card-body p-4">
+        <label class="form-label fw-semibold">Order Notes</label>
+        <textarea name="notes" class="form-control" rows="2">{{ order.notes|default:'' }}</textarea>
+    </div>
+</div>
+
+<div class="d-flex gap-3">
+    <button type="submit" class="btn-primary-custom btn">
+        <i class="bi bi-check-lg me-1"></i> Update Order
+    </button>
+    <a href="{% url 'stitching_detail' order.pk %}" class="btn btn-outline-secondary">Cancel</a>
+</div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateBalance() {
+    const cost    = parseFloat(document.getElementById('stitchingCost').value || 0);
+    const advance = parseFloat(document.getElementById('advancePayment').value || 0);
+    const balance = cost - advance;
+    const el      = document.getElementById('remainingBalance');
+    el.value      = balance;
+    el.className  = balance > 0
+        ? 'form-control bg-light fw-bold text-danger'
+        : 'form-control bg-light fw-bold text-success';
+}
+
+function loadSizeMeasurements() {
+    const size       = document.getElementById('sizeSelect').value;
+    const customerId = document.getElementById('customerSelect').value;
+    if (!size) return;
+    fetch(`{% url 'get_size_measurements' %}?size=${size}&customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.shirt_length)  document.getElementById('shirt_length').value  = data.shirt_length + '"';
+            if (data.shoulder)      document.getElementById('shoulder').value      = data.shoulder + '"';
+            if (data.chest)         document.getElementById('chest').value         = data.chest + '"';
+            if (data.waist)         document.getElementById('waist').value         = data.waist + '"';
+            if (data.sleeve_length) document.getElementById('sleeve_length').value = data.sleeve_length + '"';
+            if (data.collar)        document.getElementById('collar').value        = data.collar + '"';
+            if (data.shalwar_length) document.getElementById('shalwar_length').value = data.shalwar_length + '"';
+            if (data.shalwar_waist) document.getElementById('shalwar_waist').value = data.shalwar_waist + '"';
+            if (data.hip)           document.getElementById('hip').value           = data.hip + '"';
+            if (data.bottom_width)  document.getElementById('bottom_width').value  = data.bottom_width + '"';
+        });
+}
+
+function loadCustomerMeasurements() {
+    const customerId = document.getElementById('customerSelect').value;
+    if (!customerId) return;
+    fetch(`{% url 'get_customer_measurements' %}?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.name)  document.getElementById('customerName').value  = data.name;
+            if (data.phone) document.getElementById('customerPhone').value = data.phone;
+            if (data.size)  document.getElementById('sizeSelect').value    = data.size;
+            if (data.shirt_length)  document.getElementById('shirt_length').value  = data.shirt_length;
+            if (data.shoulder)      document.getElementById('shoulder').value      = data.shoulder;
+            if (data.chest)         document.getElementById('chest').value         = data.chest;
+            if (data.waist)         document.getElementById('waist').value         = data.waist;
+            if (data.sleeve_length) document.getElementById('sleeve_length').value = data.sleeve_length;
+            if (data.collar)        document.getElementById('collar').value        = data.collar;
+            if (data.shalwar_length) document.getElementById('shalwar_length').value = data.shalwar_length;
+            if (data.shalwar_waist) document.getElementById('shalwar_waist').value = data.shalwar_waist;
+            if (data.hip)           document.getElementById('hip').value           = data.hip;
+            if (data.bottom_width)  document.getElementById('bottom_width').value  = data.bottom_width;
+            if (data.extra_measurements) document.getElementById('extra_measurements').value = data.extra_measurements;
+        });
+}
+</script>
+{% endblock %}

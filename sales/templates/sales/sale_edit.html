@@ -1,0 +1,472 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Edit Sale{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-pencil me-2 text-primary"></i>Edit Sale — {{ sale.invoice_number }}</h5>
+    <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<form method="post" id="saleForm">
+{% csrf_token %}
+
+<!-- Customer & Payment -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-person me-2"></i>Customer Details</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Customer Name</label>
+                <div style="position:relative;">
+                    <input type="text" id="customerSearchInput" class="form-control"
+                           placeholder="Type to search or add new..."
+                           autocomplete="off"
+                           oninput="searchCustomer()"
+                           value="{{ sale.customer.name|default:'' }}">
+                    <input type="hidden" name="customer" id="customerIdInput"
+                           value="{{ sale.customer.pk|default:'' }}">
+                    <input type="hidden" name="customer_name_input" id="customerNameHidden"
+                           value="{{ sale.customer.name|default:'' }}">
+                </div>
+                <div id="selectedCustomerBadge" style="margin-top:6px;
+                     {% if not sale.customer %}display:none;{% endif %}">
+                    <span class="badge bg-success" id="selectedCustomerName">
+                        ✓ {{ sale.customer.name|default:'' }}
+                    </span>
+                    <span class="text-muted small ms-1" style="cursor:pointer;" onclick="clearCustomer()">✕ Change</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Payment Method</label>
+                <select name="payment_method" class="form-select" required>
+                    <option value="cash" {% if sale.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="easypaisa" {% if sale.payment_method == 'easypaisa' %}selected{% endif %}>EasyPaisa</option>
+                    <option value="jazzcash" {% if sale.payment_method == 'jazzcash' %}selected{% endif %}>JazzCash</option>
+                    <option value="bank" {% if sale.payment_method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+                    <option value="credit" {% if sale.payment_method == 'credit' %}selected{% endif %}>Credit</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Notes</label>
+                <input type="text" name="notes" class="form-control"
+                       placeholder="Optional" value="{{ sale.notes|default:'' }}">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Items -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-box-seam me-2"></i>Items</h6>
+        <button type="button" class="btn-primary-custom btn btn-sm" onclick="addSaleRow()">
+            <i class="bi bi-plus-lg"></i> Add Item
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0" id="saleItemsTable">
+            <thead>
+                <tr>
+                    <th width="40">#</th>
+                    <th width="80">Type</th>
+                    <th>Item</th>
+                    <th width="80">Stock</th>
+                    <th width="100">Qty</th>
+                    <th width="120">Rate (Rs.)</th>
+                    <th width="120">T.Amt (Rs.)</th>
+                    <th width="50"></th>
+                </tr>
+            </thead>
+            <tbody id="saleItemsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bill Summary -->
+<div class="content-card mb-4">
+    <div class="card-header-custom">
+        <h6><i class="bi bi-calculator me-2"></i>Bill Summary</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="fw-semibold" style="width:200px;">No of Items:</td>
+                        <td><span id="itemcount" class="fw-bold">0</span></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Total Qty:</td>
+                        <td><span id="totalqty" class="fw-bold">0</span></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Discount (%):</td>
+                        <td>
+                            <input type="number" name="discount" id="discountInput"
+                                   class="form-control form-control-sm"
+                                   style="width:120px;"
+                                   placeholder="0" step="1" min="0" max="100"
+                                   value="{{ sale.discount|floatformat:0 }}"
+                                   oninput="updateSaleTotals()">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Paid (Rs.):</td>
+                        <td>
+                            <input type="number" name="advance_payment" id="paidInput"
+                                   class="form-control form-control-sm"
+                                   style="width:120px;"
+                                   placeholder="0" step="1" min="0"
+                                   value="{{ sale.advance_payment|floatformat:0 }}"
+                                   oninput="updateSaleTotals()">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="fw-semibold" style="width:160px;">Subtotal:</td>
+                        <td class="fw-bold text-end" id="salesubtotal">Rs. 0</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Discount:</td>
+                        <td class="text-end text-danger" id="salediscount">Rs. 0</td>
+                    </tr>
+                    <tr style="border-top:2px solid #dee2e6;">
+                        <td class="fw-bold fs-6">Payable:</td>
+                        <td class="text-end fw-bold fs-6 text-success" id="salenetotal">Rs. 0</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold">Paid:</td>
+                        <td class="text-end text-primary fw-bold" id="saleadvance">Rs. 0</td>
+                    </tr>
+                    <tr style="border-top:2px solid #dee2e6;">
+                        <td class="fw-bold fs-6">Balance:</td>
+                        <td class="text-end fw-bold fs-6" id="salebalance">Rs. 0</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submit -->
+<div class="d-flex gap-3 mb-4">
+    <button type="submit" class="btn-primary-custom btn">
+        <i class="bi bi-check-lg me-1"></i> Update Sale
+    </button>
+    <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-outline-secondary">Cancel</a>
+</div>
+
+</form>
+
+<!-- Dropdown -->
+<div id="customerDropdown"
+     style="display:none; position:fixed; background:#fff;
+            border:1px solid #dee2e6; border-radius:8px; z-index:99999;
+            box-shadow:0 4px 16px rgba(0,0,0,0.15); overflow:hidden;">
+    <div id="customerDropdownInner"
+         style="max-height:220px; overflow-y:auto; min-width:260px; width:max-content;">
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let saleRowCount = 0;
+let searchTimeout = null;
+
+const products = [
+    { id: '', name: '-- Select Product --', stock: 0, price: 0 },
+    {% for product in products %}
+    { id: '{{ product.pk }}', name: '{{ product.name }}', stock: {{ product.stock }}, price: Math.round({{ product.sale_price }}) },
+    {% endfor %}
+];
+
+const existingItems = [
+    {% for item in sale.items.all %}
+    {
+        is_manual: {% if item.custom_product_name %}true{% else %}false{% endif %},
+        product_id: '{% if item.product %}{{ item.product.pk }}{% endif %}',
+        custom_name: '{{ item.custom_product_name|default:"" }}',
+        qty: {{ item.quantity|floatformat:2 }},
+        price: {{ item.sale_price|floatformat:0 }},
+    },
+    {% endfor %}
+];
+
+window.onload = function() {
+    existingItems.forEach(item => addSaleRow(item));
+    updateSaleTotals();
+};
+
+function positionDropdown() {
+    const input    = document.getElementById('customerSearchInput');
+    const dropdown = document.getElementById('customerDropdown');
+    const rect     = input.getBoundingClientRect();
+    dropdown.style.top      = (rect.bottom + 4) + 'px';
+    dropdown.style.left     = rect.left + 'px';
+    dropdown.style.minWidth = rect.width + 'px';
+}
+
+function searchCustomer() {
+    const query = document.getElementById('customerSearchInput').value.trim();
+    document.getElementById('customerIdInput').value = '';
+    document.getElementById('customerNameHidden').value = query;
+
+    if (searchTimeout) clearTimeout(searchTimeout);
+    if (query.length < 1) {
+        document.getElementById('customerDropdown').style.display = 'none';
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        fetch(`/sales/customer-search/?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+                const dropdown = document.getElementById('customerDropdown');
+                const inner    = document.getElementById('customerDropdownInner');
+                let html = '';
+
+                if (data.customers.length > 0) {
+                    data.customers.forEach(c => {
+                        html += `<div onclick="selectCustomer(${c.id}, '${c.name}')"
+                                      style="padding:10px 16px; cursor:pointer; border-bottom:1px solid #f0f0f0; white-space:nowrap;"
+                                      onmouseover="this.style.background='#f8f9fa'"
+                                      onmouseout="this.style.background='#fff'">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i>
+                                    <strong>${c.name}</strong>
+                                    ${c.phone ? '<span class="text-muted ms-2 small">' + c.phone + '</span>' : ''}
+                                 </div>`;
+                    });
+                }
+
+                html += `<div onclick="selectNewCustomer('${query}')"
+                               style="padding:10px 16px; cursor:pointer; background:#fff8f0; white-space:nowrap;"
+                               onmouseover="this.style.background='#fff0e0'"
+                               onmouseout="this.style.background='#fff8f0'">
+                            <i class="bi bi-person-plus me-2 text-warning"></i>
+                            <strong>Add "${query}" as new customer</strong>
+                         </div>`;
+
+                html += `<div onclick="selectWalkin()"
+                               style="padding:10px 16px; cursor:pointer; background:#f8f9fa; white-space:nowrap;"
+                               onmouseover="this.style.background='#e9ecef'"
+                               onmouseout="this.style.background='#f8f9fa'">
+                            <i class="bi bi-person me-2 text-secondary"></i>
+                            Use as Walk-in Customer
+                         </div>`;
+
+                inner.innerHTML = html;
+                positionDropdown();
+                dropdown.style.display = 'block';
+            });
+    }, 300);
+}
+
+function selectCustomer(id, name) {
+    document.getElementById('customerIdInput').value       = id;
+    document.getElementById('customerNameHidden').value    = name;
+    document.getElementById('customerSearchInput').value   = name;
+    document.getElementById('customerDropdown').style.display = 'none';
+    document.getElementById('selectedCustomerBadge').style.display = 'block';
+    document.getElementById('selectedCustomerName').textContent    = '✓ ' + name;
+}
+
+function selectNewCustomer(name) {
+    document.getElementById('customerIdInput').value       = '';
+    document.getElementById('customerNameHidden').value    = name;
+    document.getElementById('customerSearchInput').value   = name;
+    document.getElementById('customerDropdown').style.display = 'none';
+    document.getElementById('selectedCustomerBadge').style.display = 'block';
+    document.getElementById('selectedCustomerName').textContent    = '+ New: ' + name;
+}
+
+function selectWalkin() {
+    document.getElementById('customerIdInput').value       = '';
+    document.getElementById('customerNameHidden').value    = '';
+    document.getElementById('customerSearchInput').value   = '';
+    document.getElementById('customerDropdown').style.display = 'none';
+    document.getElementById('selectedCustomerBadge').style.display = 'none';
+}
+
+function clearCustomer() {
+    document.getElementById('customerIdInput').value       = '';
+    document.getElementById('customerNameHidden').value    = '';
+    document.getElementById('customerSearchInput').value   = '';
+    document.getElementById('selectedCustomerBadge').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#customerSearchInput') && !e.target.closest('#customerDropdown')) {
+        document.getElementById('customerDropdown').style.display = 'none';
+    }
+});
+
+window.addEventListener('scroll', function() {
+    if (document.getElementById('customerDropdown').style.display === 'block') positionDropdown();
+});
+
+function addSaleRow(existing = null) {
+    saleRowCount++;
+    const n     = saleRowCount;
+    const tbody = document.getElementById('saleItemsBody');
+    const row   = document.createElement('tr');
+    row.id      = `salerow-${n}`;
+
+    row.innerHTML = `
+        <td>${n}</td>
+        <td>
+            <div class="form-check form-switch mt-1">
+                <input class="form-check-input" type="checkbox" id="manual-${n}" onchange="toggleManual(${n})">
+                <label class="form-check-label small" for="manual-${n}">Manual</label>
+                <input type="hidden" name="is_manual[]" id="is_manual-${n}" value="no">
+            </div>
+        </td>
+        <td id="product-cell-${n}">
+            <select name="product_id[]" class="form-select form-select-sm"
+                    onchange="updateStock(${n})" id="prod-${n}">
+                ${products.map(p => `<option value="${p.id}" data-stock="${p.stock}" data-price="${p.price}">${p.name}</option>`).join('')}
+            </select>
+            <input type="text" name="custom_name[]" id="custom-${n}"
+                   class="form-control form-control-sm d-none" placeholder="Type item name...">
+        </td>
+        <td><span id="stock-${n}" class="badge bg-secondary">-</span></td>
+        <td>
+            <input type="number" name="quantity[]" class="form-control form-control-sm"
+                   placeholder="0" step="any" min="0"
+                   oninput="calculateSaleRow(${n})" id="saleqty-${n}">
+        </td>
+        <td>
+            <input type="number" name="sale_price[]" class="form-control form-control-sm"
+                   placeholder="0" step="1" min="0"
+                   oninput="calculateSaleRow(${n})" id="saleprice-${n}">
+        </td>
+        <td><strong id="saletotal-${n}" class="text-success">0</strong></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSaleRow(${n})">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>`;
+    tbody.appendChild(row);
+
+    if (existing) {
+        if (existing.is_manual) {
+            document.getElementById(`manual-${n}`).checked = true;
+            toggleManual(n);
+            document.getElementById(`custom-${n}`).value = existing.custom_name;
+        } else {
+            const sel = document.getElementById(`prod-${n}`);
+            sel.value = existing.product_id;
+            updateStock(n);
+        }
+        document.getElementById(`saleqty-${n}`).value   = existing.qty;
+        document.getElementById(`saleprice-${n}`).value = existing.price;
+        calculateSaleRow(n);
+    }
+
+    updateSaleTotals();
+}
+
+function toggleManual(id) {
+    const isManual   = document.getElementById(`manual-${id}`).checked;
+    const dropdown   = document.getElementById(`prod-${id}`);
+    const customInput= document.getElementById(`custom-${id}`);
+    const stockEl    = document.getElementById(`stock-${id}`);
+    const manualFlag = document.getElementById(`is_manual-${id}`);
+    if (isManual) {
+        dropdown.classList.add('d-none');
+        customInput.classList.remove('d-none');
+        stockEl.textContent  = 'N/A';
+        stockEl.className    = 'badge bg-secondary';
+        manualFlag.value     = 'yes';
+        document.getElementById(`saleprice-${id}`).value = '';
+        document.getElementById(`saletotal-${id}`).textContent = '0';
+    } else {
+        dropdown.classList.remove('d-none');
+        customInput.classList.add('d-none');
+        stockEl.textContent = '-';
+        stockEl.className   = 'badge bg-secondary';
+        manualFlag.value    = 'no';
+        updateStock(id);
+    }
+    updateSaleTotals();
+}
+
+function removeSaleRow(id) {
+    const row = document.getElementById(`salerow-${id}`);
+    if (row) row.remove();
+    updateSaleTotals();
+}
+
+function updateStock(id) {
+    const select  = document.getElementById(`prod-${id}`);
+    const stockEl = document.getElementById(`stock-${id}`);
+    const priceEl = document.getElementById(`saleprice-${id}`);
+    if (!select || !stockEl) return;
+    const option = select.selectedOptions[0];
+    const stock  = option?.dataset.stock || '-';
+    const price  = Math.round(parseFloat(option?.dataset.price || 0));
+    stockEl.textContent = stock;
+    stockEl.className   = parseFloat(stock) > 0 ? 'badge bg-success' : 'badge bg-danger';
+    if (priceEl && !priceEl.value) priceEl.value = price;
+    calculateSaleRow(id);
+}
+
+function calculateSaleRow(id) {
+    const qty   = parseFloat(document.getElementById(`saleqty-${id}`)?.value || 0);
+    const price = Math.round(parseFloat(document.getElementById(`saleprice-${id}`)?.value || 0));
+    const total = Math.round(qty * price);
+    const totalEl = document.getElementById(`saletotal-${id}`);
+    if (totalEl) totalEl.textContent = total;
+    updateSaleTotals();
+}
+
+function updateSaleTotals() {
+    let subtotal = 0;
+    let totalQty = 0;
+    let itemCount= 0;
+
+    document.querySelectorAll('[id^="saletotal-"]').forEach(el => {
+        subtotal += parseInt(el.textContent || 0);
+    });
+    document.querySelectorAll('[id^="saleqty-"]').forEach(el => {
+        const v = parseFloat(el.value || 0);
+        if (v > 0) { totalQty += v; itemCount++; }
+    });
+
+    const discountPct    = parseFloat(document.getElementById('discountInput')?.value || 0);
+    const discountAmount = Math.round((subtotal * discountPct) / 100);
+    const netTotal       = subtotal - discountAmount;
+    const paid           = parseFloat(document.getElementById('paidInput')?.value || 0);
+    const balance        = netTotal - paid;
+
+    document.getElementById('itemcount').textContent    = itemCount;
+    document.getElementById('totalqty').textContent     = totalQty;
+    document.getElementById('salesubtotal').textContent = `Rs. ${subtotal}`;
+    document.getElementById('salediscount').textContent = `Rs. ${discountAmount}`;
+    document.getElementById('salenetotal').textContent  = `Rs. ${netTotal}`;
+    document.getElementById('saleadvance').textContent  = `Rs. ${paid}`;
+
+    const balanceEl = document.getElementById('salebalance');
+    if (balance < 0) {
+        balanceEl.textContent = `Overpaid Rs. ${Math.abs(balance)}`;
+        balanceEl.className   = 'text-end fw-bold fs-6 text-success';
+    } else if (balance === 0) {
+        balanceEl.textContent = `Fully Paid ✓`;
+        balanceEl.className   = 'text-end fw-bold fs-6 text-success';
+    } else {
+        balanceEl.textContent = `Rs. ${balance}`;
+        balanceEl.className   = 'text-end fw-bold fs-6 text-danger';
+    }
+}
+</script>
+{% endblock %}

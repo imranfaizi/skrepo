@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block page_title %}Expenses Report{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="bi bi-cash-stack me-2 text-primary"></i>Expenses Report</h5>
+    <div class="d-flex gap-2">
+        <a href="{% url 'export_expenses_csv' %}" class="btn btn-sm btn-outline-success"><i class="bi bi-download me-1"></i> Export CSV</a>
+        <a href="{% url 'reports_home' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+<div class="content-card mb-4">
+    <div class="card-header-custom"><h6><i class="bi bi-funnel me-2"></i>Filter by Date</h6></div>
+    <div class="card-body p-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date|default:'' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date|default:'' }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn-primary-custom btn w-100"><i class="bi bi-search me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="content-card mb-4">
+    <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 0;">
+        <div class="label">Total Expenses</div>
+        <div class="value">Rs. {{ total|floatformat:2 }}</div>
+    </div>
+</div>
+<div class="content-card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Notes</th></tr></thead>
+            <tbody>
+                {% for exp in expenses %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ exp.title }}</strong></td>
+                    <td>{% if exp.category %}<span class="badge bg-secondary">{{ exp.category.name }}</span>{% else %}-{% endif %}</td>
+                    <td><strong class="text-danger">Rs. {{ exp.amount|floatformat:2 }}</strong></td>
+                    <td>{{ exp.date|date:"d M Y" }}</td>
+                    <td>{{ exp.notes|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No expenses found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
